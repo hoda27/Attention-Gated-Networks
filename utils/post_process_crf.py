@@ -77,14 +77,14 @@ if __name__ == '__main__':
         for fr in ['ED', 'ES']:
             # Read image
             nim = nib.load(os.path.join(data_dir, 'image_{0}.nii.gz'.format(fr)))
-            image = np.squeeze(nim.get_data())
+            image = np.squeeze(nim.get_fdata())
 
             # Scale the intensity to be [0, 1] so that we can set a consistent intensity parameter for CRF
             #image = intensity_rescaling(image, 1, 99)
 
             # Read probability map
             nim = nib.load(os.path.join(dest_dir, 'prob_{0}_{1}_epoch{2:03d}.nii.gz'.format(fr, model_name, epoch)))
-            prob = nim.get_data()
+            prob = nim.get_fdata()
 
             # Apply CRF
             mu1 = 1

@@ -1,9 +1,11 @@
-import torchsample.transforms as ts
+import torch
+import torchvision.transforms as ts
 from pprint import pprint
-
+import numpy as np
+import random
+from torchvision.transforms import InterpolationMode
 
 class Transformations:
-
     def __init__(self, name):
         self.name = name
 
@@ -24,11 +26,8 @@ class Transformations:
 
     def get_transformation(self):
         return {
-            'ukbb_sax': self.cmr_3d_sax_transform,
-            'hms_sax':  self.hms_sax_transform,
-            'test_sax': self.test_3d_sax_transform,
+            # 'test_sax': self.test_3d_sax_transform,
             'acdc_sax': self.cmr_3d_sax_transform,
-            'us':       self.ultrasound_transform,
         }[self.name]()
 
     def print(self):
@@ -49,114 +48,161 @@ class Transformations:
         if hasattr(t_opts, 'random_flip_prob'): self.random_flip_prob = t_opts.random_flip_prob
         if hasattr(t_opts, 'division_factor'):  self.division_factor = t_opts.division_factor
 
-    def ukbb_sax_transform(self):
-
-        train_transform = ts.Compose([ts.PadNumpy(size=self.scale_size),
-                                      ts.ToTensor(),
-                                      ts.ChannelsFirst(),
-                                      ts.TypeCast(['float', 'float']),
-                                      ts.RandomFlip(h=True, v=True, p=self.random_flip_prob),
-                                      ts.RandomAffine(rotation_range=self.rotate_val, translation_range=self.shift_val,
-                                                      zoom_range=self.scale_val, interp=('bilinear', 'nearest')),
-                                      ts.NormalizeMedicPercentile(norm_flag=(True, False)),
-                                      ts.RandomCrop(size=self.patch_size),
-                                      ts.TypeCast(['float', 'long'])
-                                ])
-
-        valid_transform = ts.Compose([ts.PadNumpy(size=self.scale_size),
-                                      ts.ToTensor(),
-                                      ts.ChannelsFirst(),
-                                      ts.TypeCast(['float', 'float']),
-                                      ts.NormalizeMedicPercentile(norm_flag=(True, False)),
-                                      ts.SpecialCrop(size=self.patch_size, crop_type=0),
-                                      ts.TypeCast(['float', 'long'])
-                                ])
-
-        return {'train': train_transform, 'valid': valid_transform}
-
     def cmr_3d_sax_transform(self):
+      train_transform = ts.Compose([PadNumpy(self.scale_size),
+                        ChannelsFirst(),
+                        TypeCast(['float', 'float']),
+                        # ts.ToTensor(),
+                        RandomFlip(h=True, v=True, p=self.random_flip_prob),
+                        # ts.ToTensor(),
+                        ToTensorND(),
+                        ts.RandomAffine(degrees=self.rotate_val, translate=self.shift_val,
+                                scale=self.scale_val, interpolation= InterpolationMode.BILINEAR),
+                        # ts.NormalizeMedicPercentile(norm_flag=(True, False)),
+                        ts.Normalize(mean=[0.0], std=[1.0]),
+                        ChannelsLast(),
+                        AddChannel(axis=0),
+                        ToTensorND(),
+                        # ts.RandomCrop(size=self.patch_size[:2]),
+                        TypeCast(['float', 'long'])
+                      ])
 
-        train_transform = ts.Compose([ts.PadNumpy(size=self.scale_size),
-                                      ts.ToTensor(),
-                                      ts.ChannelsFirst(),
-                                      ts.TypeCast(['float', 'float']),
-                                      ts.RandomFlip(h=True, v=True, p=self.random_flip_prob),
-                                      ts.RandomAffine(rotation_range=self.rotate_val, translation_range=self.shift_val,
-                                                      zoom_range=self.scale_val, interp=('bilinear', 'nearest')),
-                                      #ts.NormalizeMedicPercentile(norm_flag=(True, False)),
-                                      ts.NormalizeMedic(norm_flag=(True, False)),
-                                      ts.ChannelsLast(),
-                                      ts.AddChannel(axis=0),
-                                      ts.RandomCrop(size=self.patch_size),
-                                      ts.TypeCast(['float', 'long'])
-                                ])
+      valid_transform = ts.Compose([PadNumpy(size=self.scale_size),
+                        ChannelsFirst(),
+                        TypeCast(['float', 'float']),
+                        #ts.NormalizeMedicPercentile(norm_flag=(True, False)),
+                        ts.Normalize(mean=[0.0], std=[1.0]),
+                        ChannelsLast(),
+                        AddChannel(axis=0),
+                        SpecialCrop(size=self.patch_size, crop_type=0),
+                        TypeCast(['float', 'long'])
+                      ])
+      return {'train': train_transform, 'valid': valid_transform}
 
-        valid_transform = ts.Compose([ts.PadNumpy(size=self.scale_size),
-                                      ts.ToTensor(),
-                                      ts.ChannelsFirst(),
-                                      ts.TypeCast(['float', 'float']),
-                                      #ts.NormalizeMedicPercentile(norm_flag=(True, False)),
-                                      ts.NormalizeMedic(norm_flag=(True, False)),
-                                      ts.ChannelsLast(),
-                                      ts.AddChannel(axis=0),
-                                      ts.SpecialCrop(size=self.patch_size, crop_type=0),
-                                      ts.TypeCast(['float', 'long'])
-                                ])
+    # def test_3d_sax_transform(self):
+    #     test_transform = ts.Compose([ts.PadFactorNumpy(factor=self.division_factor),
+    #                                  ts.ToTensor(),
+    #                                  ChannelsFirst(),
+    #                                  ts.TypeCast(['float']),
+    #                                  #ts.NormalizeMedicPercentile(norm_flag=True),
+    #                                  ts.Normalize(),
+    #                                  ChannelsLast(),
+    #                                  AddChannel(axis=0),
+    #                                  ])
 
-        return {'train': train_transform, 'valid': valid_transform}
+    #     return {'test': test_transform}
+class ToTensorND(object):
+    def __call__(self, img):
+        # Converts any numpy array to a torch tensor, preserving shape
+        return torch.from_numpy(np.ascontiguousarray(img))
+    
+class PadNumpy(object):
+    def __init__(self, size):
+        self.size = size  # (target_x, target_y, target_z)
 
-    def hms_sax_transform(self):
+    def __call__(self, img):
+        pad_width = []
+        for i in range(3):
+            diff = self.size[i] - img.shape[i]
+            if diff > 0:
+                pad_before = diff // 2
+                pad_after = diff - pad_before
+            else:
+                pad_before = pad_after = 0
+            pad_width.append((pad_before, pad_after))
+        return np.pad(img, pad_width, mode='constant')
 
-        # Training transformation
-        # 2D Stack input - 3D High Resolution output segmentation
+class ChannelsFirst(object):
+    def __call__(self, img):
+        # For 3D: (H, W, D, C) -> (C, H, W, D)
+        if img.ndim == 4:
+            return np.transpose(img, (3, 0, 1, 2))
+        # For 2D: (H, W, C) -> (C, H, W)
+        elif img.ndim == 3:
+            return np.transpose(img, (2, 0, 1))
+        else:
+            return img
 
-        train_transform = []
-        valid_transform = []
+class TypeCast(object):
+    def __init__(self, dtypes):
+        self.dtypes = dtypes  # e.g., ['float', 'long']
 
-        # First pad to a fixed size
-        # Torch tensor
-        # Channels first
-        # Joint affine transformation
-        # In-plane respiratory motion artefacts (translation and rotation)
-        # Random Crop
-        # Normalise the intensity range
-        train_transform = ts.Compose([])
+    def __call__(self, sample):
+        # If sample is a tuple/list, cast each element
+        if isinstance(sample, (tuple, list)):
+            return tuple(self._cast(s, dt) for s, dt in zip(sample, self.dtypes))
+        else:
+            # If only one dtype specified, cast the whole sample
+            return self._cast(sample, self.dtypes[0])
 
-        return {'train': train_transform, 'valid': valid_transform}
+    def _cast(self, x, dtype):
+        if dtype == 'float':
+            if isinstance(x, np.ndarray):
+                return x.astype(np.float32)
+            elif torch.is_tensor(x):
+                return x.float()
+        elif dtype == 'long':
+            if isinstance(x, np.ndarray):
+                return x.astype(np.int64)
+            elif torch.is_tensor(x):
+                return x.long()
+        # Add more types as needed
+        return x
+    
+class SpecialCrop(object):
+    def __init__(self, size, crop_type=0):
+        self.size = size
+        self.crop_type = crop_type
 
-    def test_3d_sax_transform(self):
-        test_transform = ts.Compose([ts.PadFactorNumpy(factor=self.division_factor),
-                                     ts.ToTensor(),
-                                     ts.ChannelsFirst(),
-                                     ts.TypeCast(['float']),
-                                     #ts.NormalizeMedicPercentile(norm_flag=True),
-                                     ts.NormalizeMedic(norm_flag=True),
-                                     ts.ChannelsLast(),
-                                     ts.AddChannel(axis=0),
-                                     ])
+    def __call__(self, img):
+        # Center crop for 2D or 3D images
+        if self.crop_type == 0:
+            shape = img.shape
+            crop = self.size
+            # Support for 2D (H, W) or 3D (H, W, D)
+            slices = []
+            for i in range(len(crop)):
+                start = max((shape[i] - crop[i]) // 2, 0)
+                end = start + crop[i]
+                slices.append(slice(start, end))
+            # For images with channels, keep all channels
+            while len(slices) < len(shape):
+                slices.append(slice(None))
+            return img[tuple(slices)]
+        else:
+            # Other crop types can be added here
+            return img
+        
+class AddChannel(object):
+    def __init__(self, axis=0):
+        self.axis = axis
 
-        return {'test': test_transform}
+    def __call__(self, img):
+        # Add a new channel axis at the specified position
+        return np.expand_dims(img, axis=self.axis)
+    
+class ChannelsLast(object):
+    def __call__(self, img):
+        # For 3D: (C, H, W, D) -> (H, W, D, C)
+        if img.ndim == 4:
+            return np.transpose(img, (1, 2, 3, 0))
+        # For 2D: (C, H, W) -> (H, W, C)
+        elif img.ndim == 3:
+            return np.transpose(img, (1, 2, 0))
+        else:
+            return img
+        
+class RandomFlip(object):
+    def __init__(self, h=True, v=True, p=0.5):
+        self.h = h
+        self.v = v
+        self.p = p
 
-
-    def ultrasound_transform(self):
-
-        train_transform = ts.Compose([ts.ToTensor(),
-                                      ts.TypeCast(['float']),
-                                      ts.AddChannel(axis=0),
-                                      ts.SpecialCrop(self.patch_size,0),
-                                      ts.RandomFlip(h=True, v=False, p=self.random_flip_prob),
-                                      ts.RandomAffine(rotation_range=self.rotate_val,
-                                                      translation_range=self.shift_val,
-                                                      zoom_range=self.scale_val,
-                                                      interp=('bilinear')),
-                                      ts.StdNormalize(),
-                                ])
-
-        valid_transform = ts.Compose([ts.ToTensor(),
-                                      ts.TypeCast(['float']),
-                                      ts.AddChannel(axis=0),
-                                      ts.SpecialCrop(self.patch_size,0),
-                                      ts.StdNormalize(),
-                                ])
-
-        return {'train': train_transform, 'valid': valid_transform}
+    def __call__(self, img):
+        # img can be 2D, 3D, or 4D numpy array
+        if random.random() < self.p:
+            if img.shape[1] > 0 and self.h:
+                img = np.flip(img, axis=1)  # horizontal flip (axis=1)
+            if  img.shape[0] > 0 and self.v:
+                img = np.flip(img, axis=0)  # vertical flip (axis=0)
+        return img

@@ -77,10 +77,10 @@ def get_model(json_opts):
         from .feedforward_classifier import FeedForwardClassifier
         model = FeedForwardClassifier()
 
-    elif model_type == 'aggregated_classifier':
-        # Return the model type
-        from .aggregated_classifier import AggregatedClassifier
-        model = AggregatedClassifier()
+    # elif model_type == 'aggregated_classifier':
+    #     # Return the model type
+    #     from .aggregated_classifier import AggregatedClassifier
+    #     model = AggregatedClassifier()
 
 
     # Initialise the created model

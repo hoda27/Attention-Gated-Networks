@@ -15,9 +15,9 @@ def load_nifti_img(filepath, dtype):
     :return: return numpy array
     '''
     nim = nib.load(filepath)
-    out_nii_array = np.array(nim.get_data(),dtype=dtype)
+    out_nii_array = np.array(nim.get_fdata(),dtype=dtype)
     out_nii_array = np.squeeze(out_nii_array) # drop singleton dim in case temporal dim exists
-    meta = {'affine': nim.get_affine(),
+    meta = {'affine': nim.affine,
             'dim': nim.header['dim'],
             'pixdim': nim.header['pixdim'],
             'name': os.path.basename(filepath)
@@ -42,6 +42,15 @@ def write_nifti_img(input_nii_array, meta, savedir):
 
 
 def check_exceptions(image, label=None):
+    # Check if image is a torch tensor and print device info
+    try:
+        import torch
+        if isinstance(image, torch.Tensor):
+            print(f"[DEBUG] Image tensor device: {image.device}")
+        if label is not None and isinstance(label, torch.Tensor):
+            print(f"[DEBUG] Label tensor device: {label.device}")
+    except ImportError:
+        pass
     if label is not None:
         if image.shape != label.shape:
             print('Error: mismatched size, image.shape = {0}, '

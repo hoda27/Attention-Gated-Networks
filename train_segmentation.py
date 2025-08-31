@@ -31,35 +31,47 @@ def train(arguments):
 
     # Setup the NN Model
     model = get_model(json_opts.model)
+    # Print device info for model parameters
+    
+    try:
+        import torch
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print("USING DEVICE:", device)
+        print("Number of GPUs:", torch.cuda.device_count())
+        print("Current GPU:", torch.cuda.get_device_name(0))
+        print("Current device index:", torch.cuda.current_device())
+        print("Allocated:", torch.cuda.memory_allocated()/1024**2, "MB")
+        print("Cached:", torch.cuda.memory_reserved()/1024**2, "MB")
+
+    except Exception as e:
+        print("[DEBUG] Could not determine model device.")
+        print(e)
     if network_debug:
         print('# of pars: ', model.get_number_parameters())
         print('fp time: {0:.3f} sec\tbp time: {1:.3f} sec per sample'.format(*model.get_fp_bp_time()))
         exit()
-
     # Setup Data Loader
-    train_dataset = ds_class(ds_path, split='train',      transform=ds_transform['train'], preload_data=train_opts.preloadData)
-    valid_dataset = ds_class(ds_path, split='validation', transform=ds_transform['valid'], preload_data=train_opts.preloadData)
-    test_dataset  = ds_class(ds_path, split='test',       transform=ds_transform['valid'], preload_data=train_opts.preloadData)
-    train_loader = DataLoader(dataset=train_dataset, num_workers=16, batch_size=train_opts.batchSize, shuffle=True)
-    valid_loader = DataLoader(dataset=valid_dataset, num_workers=16, batch_size=train_opts.batchSize, shuffle=False)
-    test_loader  = DataLoader(dataset=test_dataset,  num_workers=16, batch_size=train_opts.batchSize, shuffle=False)
+    train_dataset = ds_class(ds_path, split='train', transform=ds_transform['train'], preload_data=train_opts.preloadData)
+    valid_dataset = ds_class(ds_path, split='val',   transform=ds_transform['valid'], preload_data=train_opts.preloadData)
+    test_dataset  = ds_class(ds_path, split='test',  transform=ds_transform['valid'], preload_data=train_opts.preloadData)
+    train_loader = DataLoader(dataset=train_dataset, num_workers=0, batch_size=train_opts.batchSize, shuffle=True)
+    valid_loader = DataLoader(dataset=valid_dataset, num_workers=0, batch_size=train_opts.batchSize, shuffle=False)
+    test_loader  = DataLoader(dataset=test_dataset,  num_workers=0, batch_size=train_opts.batchSize, shuffle=False)
 
     # Visualisation Parameters
-    visualizer = Visualiser(json_opts.visualisation, save_dir=model.save_dir)
+    # visualizer = Visualiser(json_opts.visualisation, save_dir=model.save_dir)
     error_logger = ErrorLogger()
 
     # Training Function
     model.set_scheduler(train_opts)
     for epoch in range(model.which_epoch, train_opts.n_epochs):
         print('(epoch: %d, total # iters: %d)' % (epoch, len(train_loader)))
-
         # Training Iterations
         for epoch_iter, (images, labels) in tqdm(enumerate(train_loader, 1), total=len(train_loader)):
             # Make a training update
             model.set_input(images, labels)
             model.optimize_parameters()
             #model.optimize_parameters_accumulate_grd(epoch_iter)
-
             # Error visualisation
             errors = model.get_current_errors()
             error_logger.update(errors, split='train')
@@ -78,13 +90,13 @@ def train(arguments):
                 error_logger.update({**errors, **stats}, split=split)
 
                 # Visualise predictions
-                visuals = model.get_current_visuals()
-                visualizer.display_current_results(visuals, epoch=epoch, save_result=False)
+                # visuals = model.get_current_visuals()
+                # visualizer.display_current_results(visuals, epoch=epoch, save_result=False)
 
         # Update the plots
-        for split in ['train', 'validation', 'test']:
-            visualizer.plot_current_errors(epoch, error_logger.get_errors(split), split_name=split)
-            visualizer.print_current_errors(epoch, error_logger.get_errors(split), split_name=split)
+        # for split in ['train', 'validation', 'test']:
+            # visualizer.plot_current_errors(epoch, error_logger.get_errors(split), split_name=split)
+            # visualizer.print_current_errors(epoch, error_logger.get_errors(split), split_name=split)
         error_logger.reset()
 
         # Save the model parameters
@@ -93,7 +105,6 @@ def train(arguments):
 
         # Update the model learning rate
         model.update_learning_rate()
-
 
 if __name__ == '__main__':
     import argparse

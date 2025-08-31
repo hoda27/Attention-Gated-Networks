@@ -17,6 +17,8 @@ class Visualiser():
         self.name = os.path.basename(self.save_dir)
         self.saved = False
         self.display_single_pane_ncols = opt.display_single_pane_ncols
+        print("Display ID: ", self.display_id)
+        print("no_html: ", self.use_html)
 
         # Error plots
         self.error_plots = dict()
@@ -24,8 +26,7 @@ class Visualiser():
 
         if self.display_id > 0:
             import visdom
-            self.vis = visdom.Visdom(port=opt.display_port)
-
+            self.vis = visdom.Visdom(port=opt.display_port, use_incoming_socket=False)
         if self.use_html:
             self.web_dir = os.path.join(self.save_dir, 'web')
             self.img_dir = os.path.join(self.web_dir, 'images')

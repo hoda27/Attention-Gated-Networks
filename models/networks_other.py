@@ -15,48 +15,48 @@ def weights_init_normal(m):
     classname = m.__class__.__name__
     #print(classname)
     if classname.find('Conv') != -1:
-        init.normal(m.weight.data, 0.0, 0.02)
+        init.normal_(m.weight.data, 0.0, 0.02)
     elif classname.find('Linear') != -1:
-        init.normal(m.weight.data, 0.0, 0.02)
+        init.normal_(m.weight.data, 0.0, 0.02)
     elif classname.find('BatchNorm') != -1:
-        init.normal(m.weight.data, 1.0, 0.02)
-        init.constant(m.bias.data, 0.0)
+        init.normal_(m.weight.data, 1.0, 0.02)
+        init.constant_(m.bias.data, 0.0)
 
 
 def weights_init_xavier(m):
     classname = m.__class__.__name__
     #print(classname)
     if classname.find('Conv') != -1:
-        init.xavier_normal(m.weight.data, gain=1)
+        init.xavier_normal_(m.weight.data, gain=1)
     elif classname.find('Linear') != -1:
-        init.xavier_normal(m.weight.data, gain=1)
+        init.xavier_normal_(m.weight.data, gain=1)
     elif classname.find('BatchNorm') != -1:
-        init.normal(m.weight.data, 1.0, 0.02)
-        init.constant(m.bias.data, 0.0)
+        init.normal_(m.weight.data, 1.0, 0.02)
+        init.constant_(m.bias.data, 0.0)
 
 
 def weights_init_kaiming(m):
     classname = m.__class__.__name__
     #print(classname)
     if classname.find('Conv') != -1:
-        init.kaiming_normal(m.weight.data, a=0, mode='fan_in')
+        init.kaiming_normal_(m.weight.data, a=0, mode='fan_in')
     elif classname.find('Linear') != -1:
-        init.kaiming_normal(m.weight.data, a=0, mode='fan_in')
+        init.kaiming_normal_(m.weight.data, a=0, mode='fan_in')
     elif classname.find('BatchNorm') != -1:
-        init.normal(m.weight.data, 1.0, 0.02)
-        init.constant(m.bias.data, 0.0)
+        init.normal_(m.weight.data, 1.0, 0.02)
+        init.constant_(m.bias.data, 0.0)
 
 
 def weights_init_orthogonal(m):
     classname = m.__class__.__name__
     #print(classname)
     if classname.find('Conv') != -1:
-        init.orthogonal(m.weight.data, gain=1)
+        init.orthogonal_(m.weight.data, gain=1)
     elif classname.find('Linear') != -1:
-        init.orthogonal(m.weight.data, gain=1)
+        init.orthogonal_(m.weight.data, gain=1)
     elif classname.find('BatchNorm') != -1:
-        init.normal(m.weight.data, 1.0, 0.02)
-        init.constant(m.bias.data, 0.0)
+        init.normal_(m.weight.data, 1.0, 0.02)
+        init.constant_(m.bias.data, 0.0)
 
 
 def init_weights(net, init_type='normal'):
@@ -138,7 +138,7 @@ def get_scheduler(optimizer, opt):
     return scheduler
 
 
-def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropout=False, init_type='normal', gpu_ids=[]):
+def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropout=False, init_type='normal', gpu_ids=[0]):
     netG = None
     use_gpu = len(gpu_ids) > 0
     norm_layer = get_norm_layer(norm_type=norm)
@@ -163,13 +163,14 @@ def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropo
 
 
 def define_D(input_nc, ndf, which_model_netD,
-             n_layers_D=3, norm='batch', use_sigmoid=False, init_type='normal', gpu_ids=[]):
+             n_layers_D=3, norm='batch', use_sigmoid=False, init_type='normal', gpu_ids=[0]):
     netD = None
     use_gpu = len(gpu_ids) > 0
     norm_layer = get_norm_layer(norm_type=norm)
 
     if use_gpu:
         assert(torch.cuda.is_available())
+    print("ASSERTION PASSED &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     if which_model_netD == 'basic':
         netD = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer, use_sigmoid=use_sigmoid, gpu_ids=gpu_ids)
     elif which_model_netD == 'n_layers':
@@ -179,6 +180,7 @@ def define_D(input_nc, ndf, which_model_netD,
                                   which_model_netD)
     if use_gpu:
         netD.cuda(gpu_ids[0])
+        print("ASSERTION PASSED2222 &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     init_weights(netD, init_type=init_type)
     return netD
 
