@@ -72,17 +72,6 @@ def get_model(json_opts):
         from .feedforward_seg_model import FeedForwardSegmentation
         model = FeedForwardSegmentation()
 
-    elif model_type == 'classifier':
-        # Return the model type
-        from .feedforward_classifier import FeedForwardClassifier
-        model = FeedForwardClassifier()
-
-    # elif model_type == 'aggregated_classifier':
-    #     # Return the model type
-    #     from .aggregated_classifier import AggregatedClassifier
-    #     model = AggregatedClassifier()
-
-
     # Initialise the created model
     model.initialize(model_opts)
     print("Model [%s] is created" % (model.name()))
