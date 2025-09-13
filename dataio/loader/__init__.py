@@ -1,6 +1,6 @@
 import json
 
-from dataio.loader.ukbb_dataset import UKBBDataset
+from dataio.loader.pancreas_seg import PanSegNetDataset
 from dataio.loader.test_dataset import TestDataset
 
 
@@ -10,7 +10,7 @@ def get_dataset(name):
     :param name:
     """
     return {
-        'acdc_sax': UKBBDataset,
+        'pancreas_seg': PanSegNetDataset,
         'test_sax': TestDataset,
     }[name]
 

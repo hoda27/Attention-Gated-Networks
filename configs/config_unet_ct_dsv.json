@@ -1,6 +1,6 @@
 {
   "training":{
-    "arch_type": "acdc_sax",
+    "arch_type": "pancreas_seg",
     "n_epochs": 1000,
     "save_epoch_freq": 10,
     "lr_policy": "step",
@@ -16,10 +16,10 @@
     "display_single_pane_ncols": 0
   },
   "data_path": {
-    "acdc_sax":"C:\\Users\\hoda2\\Documents\\MastersGIUBerlin\\code\\Attention-Gated-Networks\\dataio\\t1"
+    "pancreas_seg":"C:\\Users\\hoda2\\Documents\\MastersGIUBerlin\\code\\Attention-Gated-Networks\\dataio\\t1"
   },
   "augmentation": {
-  "acdc_sax": {
+  "pancreas_seg": {
       "shift": [0.1,0.1],           
       "rotate": 10.0,              
       "scale": [0.9,1.1],
@@ -41,7 +41,7 @@
     "lr_rate": 1e-4,
     "l2_reg_weight": 1e-6,
     "feature_scale": 4,
-    "gpu_ids": [],
+    "gpu_ids": [0],
     "isTrain": true,
     "checkpoints_dir": "./checkpoints",
     "experiment_name": "experiment_unet_ct_dsv_big",

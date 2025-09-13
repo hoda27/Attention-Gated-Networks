@@ -5,12 +5,22 @@ import numpy as np
 import random
 from torchvision.transforms import InterpolationMode
 
+from monai.transforms import (
+    Compose,
+    LoadImaged, 
+    ToTensord,
+    EnsureChannelFirst,
+    ScaleIntensityRanged,
+    CropForegroundd,
+    Spacingd,
+    Resized,
+)
 class Transformations:
     def __init__(self, name):
         self.name = name
 
         # Input patch and scale size
-        self.scale_size = (192, 192, 1)
+        self.scale_size = (128, 128, 1)
         self.patch_size = (128, 128, 1)
         # self.patch_size = (208, 272, 1)
 
@@ -27,7 +37,7 @@ class Transformations:
     def get_transformation(self):
         return {
             # 'test_sax': self.test_3d_sax_transform,
-            'acdc_sax': self.cmr_3d_sax_transform,
+            'pancreas_seg': self.pancreas_3d_transform,
         }[self.name]()
 
     def print(self):
@@ -48,13 +58,11 @@ class Transformations:
         if hasattr(t_opts, 'random_flip_prob'): self.random_flip_prob = t_opts.random_flip_prob
         if hasattr(t_opts, 'division_factor'):  self.division_factor = t_opts.division_factor
 
-    def cmr_3d_sax_transform(self):
-      train_transform = ts.Compose([PadNumpy(self.scale_size),
+    def pancreas_3d_transform(self):
+      train_transform = Compose([PadNumpy(self.scale_size),
                         ChannelsFirst(),
                         TypeCast(['float', 'float']),
-                        # ts.ToTensor(),
                         RandomFlip(h=True, v=True, p=self.random_flip_prob),
-                        # ts.ToTensor(),
                         ToTensorND(),
                         ts.RandomAffine(degrees=self.rotate_val, translate=self.shift_val,
                                 scale=self.scale_val, interpolation= InterpolationMode.BILINEAR),

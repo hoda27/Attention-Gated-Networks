@@ -6,9 +6,9 @@ from os.path import join
 from .utils import load_nifti_img, check_exceptions, is_image_file
 
 
-class UKBBDataset(data.Dataset):
+class PanSegNetDataset(data.Dataset):
     def __init__(self, root_dir, split, transform=None, preload_data=False):
-        super(UKBBDataset, self).__init__()
+        super(PanSegNetDataset, self).__init__()
         image_dir = join(root_dir, split, 'images')
         target_dir = join(root_dir, split, 'masks')
         self.image_filenames  = sorted([join(image_dir, x) for x in listdir(image_dir) if is_image_file(x)])

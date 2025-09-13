@@ -2,7 +2,6 @@ import numpy
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-
 from dataio.loader import get_dataset, get_dataset_path
 from dataio.transformation import get_dataset_transformation
 from utils.util import json_file_to_pyobj
